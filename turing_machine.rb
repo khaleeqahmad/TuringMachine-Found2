@@ -8,9 +8,9 @@ class TuringMachine
 
 
   def initialize
-    @multiplicand=0
-    @multiplier =0
-    @tape = E
+    @multiplicand,
+        @multiplier, @product = 0
+    @tape = String(nil)
   end
 
 
@@ -44,13 +44,13 @@ class TuringMachine
     @multiplier   = b.to_i
   end
 
-  def self.printOnes(i)
+  def self.ones(i)
     chars = ''
     i.times{chars << "#{1}" }
     return chars
   end
 
-  def self.printEmpties(i)
+  def self.empties(i)
     chars = ''
     i.times{chars << E}
     return chars
@@ -92,12 +92,16 @@ class TuringMachine
           }
   }
        #puts rules[:q0][1]
-  @tape = E   # create empty tape (ie initial blank symbol)
+  @tape = E.dup   # create empty tape (ie initial blank symbol)
+
   ask()       # ask for input
-  product = (@multiplicand * @multiplier)
+  @product = (@multiplicand * @multiplier)
+
   # append input to tape and print:
-        #  1s (* multiplicand)       +  separator       +  1s (* multiplier)
-  @tape << printOnes(@multiplicand) << E << printOnes(@multiplier)  #<< printEmpties(product)
-  puts @tape
+  #           multiplicand    +  separator   +  1s (* multiplier)  + filler
+  @tape << ones(@multiplicand) + empties(1) + ones(@multiplier) + empties(@product)
+  puts @tape #print tape
+
+  length = @tape.length
 
 end
