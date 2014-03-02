@@ -1,50 +1,43 @@
 class TuringMachine
   ONE = '1'
-  EMPTY = '\u2227'.gsub(/\\u[\da-f]{4}/i) { |m| [m[-4..-1].to_i(16)].pack('U') }      #empty character unicode
+  EMPTY = '0'#\u2227'.gsub(/\\u[\da-f]{4}/i) { |m| [m[-4..-1].to_i(16)].pack('U') }      #empty character unicode
 
   RIGHT = 'right'   #move right
   LEFT = 'left'    #move left
   HALT = 'halt'    #halt (don't move)
 
-  states = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'qF']
-  STATES_LENGTH = states.length - 1
+  @states = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'qF']
+  STATES_LENGTH = @states.length - 1
 
 
-  @tape = Array.new
+  @tape = String.new
 
   def initialize
     @multiplicand,
         @multiplier, @product = 0
-    @tape = []
-    @rules = nil
+    @tape = ''
+    @rules = Hash.new
   end
 
   def self.rule(current, new, action, state)
-    r = {cur: current, new: new, act: action, state: state}
+    r = {current: current, new: new, action: action, state: state}
     return r
   end
 
   @rules = {
-      states[0]=> {ONE => rule(ONE, EMPTY, RIGHT, states[1]), EMPTY => rule(EMPTY, EMPTY, LEFT, states[9])},
-      states[1]=> {ONE => rule(ONE, ONE, RIGHT, states[1]), EMPTY => rule(EMPTY, EMPTY, RIGHT, states[2])},
-      states[2]=> {ONE => rule(ONE, EMPTY, RIGHT, states[3]), EMPTY => rule(EMPTY, EMPTY, LEFT, states[7])},
-      states[3]=> {ONE => rule(ONE, ONE, RIGHT, states[3]), EMPTY => rule(EMPTY, EMPTY, RIGHT, states[4])},
-      states[4]=> {ONE => rule(ONE, ONE, RIGHT, states[4]), EMPTY => rule(EMPTY, ONE, LEFT, states[5])},
-      states[5]=> {ONE => rule(ONE, ONE, LEFT, states[5]), EMPTY => rule(EMPTY, EMPTY, LEFT, states[6])},
-      states[6]=> {ONE => rule(ONE, ONE, LEFT, states[6]), EMPTY => rule(EMPTY, ONE, RIGHT, states[2])},
-      states[7]=> {ONE => rule(ONE, ONE, LEFT, states[7]), EMPTY => rule(EMPTY, EMPTY, LEFT, states[8])},
-      states[8]=> {ONE => rule(ONE, ONE, LEFT, states[8]), EMPTY => rule(EMPTY, ONE, RIGHT, :q0)},
-      states[9]=> {ONE => rule(ONE, ONE, LEFT, states[9]), EMPTY => rule(EMPTY, EMPTY, RIGHT, states[10])},
-      states[10]=> {ONE => rule(ONE, ONE, HALT, states[10])#, E => rule(E, E, h, q[10])
+      @states[0]=> {ONE => rule(ONE, EMPTY, RIGHT, 1), EMPTY => rule(EMPTY, EMPTY, LEFT, 9)},
+      @states[1]=> {ONE => rule(ONE, ONE, RIGHT, 1), EMPTY => rule(EMPTY, EMPTY, RIGHT, 2)},
+      @states[2]=> {ONE => rule(ONE, EMPTY, RIGHT, 3), EMPTY => rule(EMPTY, EMPTY, LEFT, 7)},
+      @states[3]=> {ONE => rule(ONE, ONE, RIGHT, 3), EMPTY => rule(EMPTY, EMPTY, RIGHT, 4)},
+      @states[4]=> {ONE => rule(ONE, ONE, RIGHT, 4), EMPTY => rule(EMPTY, ONE, LEFT, 5)},
+      @states[5]=> {ONE => rule(ONE, ONE, LEFT, 5), EMPTY => rule(EMPTY, EMPTY, LEFT, 6)},
+      @states[6]=> {ONE => rule(ONE, ONE, LEFT, 6), EMPTY => rule(EMPTY, ONE, RIGHT, 2)},
+      @states[7]=> {ONE => rule(ONE, ONE, LEFT, 7), EMPTY => rule(EMPTY, EMPTY, LEFT, 8)},
+      @states[8]=> {ONE => rule(ONE, ONE, LEFT, 8), EMPTY => rule(EMPTY, ONE, RIGHT, 0)},
+      @states[9]=> {ONE => rule(ONE, ONE, LEFT, 9), EMPTY => rule(EMPTY, EMPTY, RIGHT, 10)},
+      @states[10]=> {ONE => rule(ONE, ONE, HALT, 10)#, E => rule(E, E, h, 10)
       }
   }
-
-
-  def self.tape(arg, arg2)
-    if arg.sub('q')
-      puts 'q'
-    end
-  end
 
   def self.ask()
     puts "Please enter your first number (multiplicand)"
@@ -67,11 +60,11 @@ class TuringMachine
 
 
   def self.ruleRet(state, value, index)  # for modularity
-    @rules[state][value][index]
+    return @rules[@states[state]][value][index]
   end
 
   def self.current(state, value)
-     ruleRet(state, value, :curr)
+     ruleRet(state, value, :current)
   end
 
   def self.new(state, value)
@@ -79,7 +72,7 @@ class TuringMachine
   end
 
   def self.action(state, value)
-    ruleRet(state, value, :act)
+    ruleRet(state, value, :action)
   end
 
   def self.newState(state, value)
@@ -92,15 +85,18 @@ class TuringMachine
         if pos == 0
           return 0
         else
-          return pos -1
+          return pos - 1
         end
 
       when  RIGHT
-        if pos == STATES_LENGTH
-          return STATES_LENGTH
-        else
-          return pos +1
-        end
+        #if pos == STATES_LENGTH
+        #  return STATES_LENGTH
+        #else
+          return pos + 1
+        #end
+
+      when HALT
+        return pos + 0
 
     end
 
@@ -112,9 +108,9 @@ class TuringMachine
   @tape << EMPTY.dup   # create 'empty' tape (ie add initial blank symbol to array)
 
   #################### INPUT / INITIAL TAPE ###########################################
-  #ask()           # ask for input
-     @multiplicand = 2
-    @multiplier    = 3
+  ask()           # ask for input
+  #  @multiplicand = 2
+  #  @multiplier    = 3
 
   #find product
   @product = (@multiplicand * @multiplier)
@@ -123,8 +119,8 @@ class TuringMachine
     ones(@tape, @multiplicand) #add 1s for input multiplicand
     empties(@tape, 1)          #add seperator
     ones(@tape, @multiplier)   #add 1s for input multiplier
-    empties(@tape, @product)   #add blank space ready for prospective product output
-  print '@1: '+ @tape.join + "\n" #print tape as string
+    empties(@tape, @product+2)   #add blank space ready for prospective product output
+  print @tape + "\n" #print tape as string
 
   length = @tape.length    #store tape length
 
@@ -144,26 +140,27 @@ class TuringMachine
   #
   #puts " ....  1s: #{one}, ^s:' #{empty}"
  ####################################################################
-  state = :q0       #start in start state (q0)
-  pointer = 0       #set pointer to first char
 
-  #@tape[pointer].('X')
+  state = 0       #start in start state (q0)
+  pointer = 1       #set pointer to first char
 
-  print '@2: '+ @tape.join + "\n" #print tape as string
+  until state == 10   #Loop until state reaches qF
+  current = @tape[pointer]        #store current value
 
+    #store values from rules hash
+      newChar = new(state, current)      #store new value
+      newState = newState(state, current) #store new state
+      direction = action(state, current)  #store direction to move
 
-  #until state = q[10]
-  #  @tape[pointer] "#{new(state, value)}"
-  #  state = "#{newState(state, value)}"
+    #update tape and print
+      @tape[pointer] = newChar          #update character
+      print  @tape
 
-    #if value == ONE
-    #  one += 1
-    #else
-    #  empty+= 1
-    #end
+    #make changes to progress
+      state = newState                   #update state
+      pointer = move(pointer, direction) #move pointer
 
-    #puts @rules[state][value]
-
-  #end
+    print "[s:#{state}]\t\t\t"
+  end
 
 end
