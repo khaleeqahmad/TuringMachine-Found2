@@ -84,47 +84,66 @@ class TuringMachine
   end
 
   def self.printHeader(max)
+
+    zero_trail ="  "
+    single_trail="   "
+    tens_trail="  "
+    hundreds_trail=" "
+    thousands_trail=""
+
     header =''
-    header = "Position:  "
-    for i in 0..(max)
+    header = "Position:\t"
+    for i in 0..(max+1)
       case i
         when 0
-          header << "  #{i}"
+          header << "  #{i}".colorize(:color => :white, :background => :black)
         when 1..9
-          header << "   #{i}"
+          heading = single_trail + "#{i}"
+          if i.even?
+            heading = heading.colorize(:color => :white, :background => :black)
+          end
+          header << heading
         when 10..99
-          header << "  #{i}"
-        else #technically 100..999 for aesthetics, as any longer and the headings will go off position
-          header << " #{i}"
+          heading = tens_trail + "#{i}"
+          if i.even?
+            heading = heading.colorize(:color => :white, :background => :black)
+          end
+          header << heading
+        when 100..999
+          heading << hundreds_trail + "#{i}"
+          if i.even?
+            heading = heading.colorize(:color => :white, :background => :black)
+          end
+          header << heading
+        else #technically 1000..9999 for aesthetics, as any longer and the headings will go off position
+          heading << thousands_trail + "#{i}"
+          if i.even?
+            heading = heading.colorize(:color => :white, :background => :black)
+          end
+          header << heading
       end
     end
     return header
   end
 
-  def self.printTape(tape, lastPoint)
-    #.colorize(:color => :white, :background => :red)
-    printed = "[#{ELLIPSIS}|"
-    head, pos, tail = String.new
+  def self.printTape(tape, point)
+    printer = "[#{ELLIPSIS}|"
+    tapeArray = tape.split(//)
 
-    thisPoint = lastPoint +1 #slightly hacky way taking 'last'Point, as won't accept -1 (from thisPoint) for some reason??
-    nextPoint = thisPoint +1
-    head = tape.slice(0,lastPoint)
-    pos = tape.slice(thisPoint)
-    tail  = tape.slice((nextPoint), tape.length)
+    tapeArray.each_with_index do |char, i|
+        if (i == point)  then
+            printer  <<  " #{char} ".colorize(:color => :white, :background => :red)
+        elsif i < point
+          printer  << ' ' + char + ' |'
 
-    headPrint = "[#{ELLIPSIS}|"
-    tailPrint = ''
-
-    head.each_char do |i|
-      headPrint <<  ' '+i + ' |'
+        elsif i > point
+          printer  << '| ' + char + ' '
+       end
     end
 
-    tail.each_char do |i|
-      tailPrint <<   '| ' + i+' '
-    end
-    tailPrint << "|#{ELLIPSIS}]"
+    printer << "|#{ELLIPSIS}]"
 
-    print headPrint + " #{pos} ".colorize(:color => :white, :background => :red) + tailPrint
+    print printer
   end
 
   def self.move(pos, direction)
@@ -153,7 +172,7 @@ class TuringMachine
 
 
 
-  @tape << EMPTY.dup   # create 'empty' tape (ie add initial blank symbol to array)
+  @tape =''   # create 'empty' tape (ie add initial blank symbol to array)
 
   #################### INPUT / INITIAL TAPE ###########################################
   #ask()           # ask for input
@@ -166,8 +185,9 @@ class TuringMachine
 
 
   ## append input to tape and print:
-    ones(@tape, @multiplicand) #add 1s for input multiplicand
-    empties(@tape, 1)          #add seperator
+  empties(@tape, 1)          #add separator
+  ones(@tape, @multiplicand) #add 1s for input multiplicand
+    empties(@tape, 1)          #add separator
     ones(@tape, @multiplier)   #add 1s for input multiplier
     empties(@tape, @product+2)   #add blank space ready for prospective product output
 
@@ -198,7 +218,7 @@ class TuringMachine
   #print "[P: #{[pointer]}]"
 
 
-  printTape(@tape, pointer)
+  printTape(@tape, (pointer))
   print "\n"
 
     #make changes to progress
@@ -206,7 +226,7 @@ class TuringMachine
       pointer = move(pointer, direction) #move pointer
 
   end
-  print "[s:#{@states[10]}]\t"
+  print "[s: #{@states[state]}]\t"
   printTape(@tape, pointer)
   print "\n" #print tape as string
 
