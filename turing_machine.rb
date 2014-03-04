@@ -1,7 +1,7 @@
 class TuringMachine
   require 'colorize'
   ONE = '1'
-  EMPTY = '0'#\u2227'.gsub(/\\u[\da-f]{4}/i) { |m| [m[-4..-1].to_i(16)].pack('U') }      #empty character unicode
+  EMPTY = '^'#"\u2227".gsub(/\\u[\da-f]{4}/i) { |m| [m[-4..-1].to_i(16)].pack('U') }      #empty character unicode
   ELLIPSIS = '\u2026'.gsub(/\\u[\da-f]{4}/i) { |m| [m[-4..-1].to_i(16)].pack('U') }      #... character unicode
 
 
@@ -68,7 +68,7 @@ class TuringMachine
   end
 
   def self.current(state, value)
-     ruleRet(state, value, :current)
+    ruleRet(state, value, :current)
   end
 
   def self.new(state, value)
@@ -83,67 +83,83 @@ class TuringMachine
     ruleRet(state, value, :state)
   end
 
+  def self.headHighlight(i, heading)
+    if i.even? then
+      heading = heading.colorize(:color => :cyan, :background => :black, :mode => :underline)
+      return heading
+    else
+      heading = heading.colorize(:color => :light_blue, :background => :black, :mode => :underline)
+      return heading
+    end
+
+  end
+
   def self.printHeader(max)
 
     zero_trail ="  "
-    single_trail="   "
-    tens_trail="  "
-    hundreds_trail=" "
+    single_trail="  "
+    tens_trail=" "
+    hundreds_trail=""
     thousands_trail=""
 
     header =''
-    header = "Position:\t"
+    header = "Position: \t" + "[#{ELLIPSIS}"
     for i in 0..(max+1)
       case i
         when 0
-          header << "  #{i}".colorize(:color => :white, :background => :black)
+          heading = zero_trail + "#{i}"
+          heading = headHighlight(i, heading)
+          header << heading
         when 1..9
           heading = single_trail + "#{i}"
-          if i.even?
-            heading = heading.colorize(:color => :white, :background => :black)
-          end
+          heading = headHighlight(i, heading)
           header << heading
         when 10..99
           heading = tens_trail + "#{i}"
-          if i.even?
-            heading = heading.colorize(:color => :white, :background => :black)
-          end
+          heading = headHighlight(i, heading)
           header << heading
-        when 100..999
+        else #technically 100..999 for aesthetics, as any longer and the headings will go off position
           heading << hundreds_trail + "#{i}"
-          if i.even?
-            heading = heading.colorize(:color => :white, :background => :black)
-          end
-          header << heading
-        else #technically 1000..9999 for aesthetics, as any longer and the headings will go off position
-          heading << thousands_trail + "#{i}"
-          if i.even?
-            heading = heading.colorize(:color => :white, :background => :black)
-          end
+          heading = headHighlight(i, heading)
           header << heading
       end
     end
-    return header
+    header << "#{ELLIPSIS}]"
+
+    return header.colorize(:background => :light_white, :mode => :bold)
   end
 
-  def self.printTape(tape, point)
-    printer = "[#{ELLIPSIS}|"
+  def self.printTape(tape, point, state)
+    printer = "[s: #{@states[state]}]\t\t[#{ELLIPSIS}"
     tapeArray = tape.split(//)
 
     tapeArray.each_with_index do |char, i|
-        if (i == point)  then
-            printer  <<  " #{char} ".colorize(:color => :white, :background => :red)
-        elsif i < point
-          printer  << ' ' + char + ' |'
+      if (i == point)  then
+        printer  <<  " #{char} ".colorize(:color => :white, :background => :red)
+      elsif i < point
+        printChar  = ' ' + char + ' '
+        if i.even? then
+          printChar = printChar.colorize(:color => :black, :background => :cyan)
+        else
+          printChar = printChar.colorize(:color => :black, :background => :light_blue)
+        end
+        printer << printChar
 
-        elsif i > point
-          printer  << '| ' + char + ' '
-       end
+
+      elsif i > point
+        printChar  = ' ' + char + ' '
+        if i.even? then
+          printChar = printChar.colorize(:color => :black, :background => :cyan)
+        else
+          printChar = printChar.colorize(:color => :black, :background => :light_blue)
+        end
+        printer << printChar
+      end
     end
 
-    printer << "|#{ELLIPSIS}]"
+    printer << "#{ELLIPSIS}]"
 
-    print printer
+    return printer
   end
 
   def self.move(pos, direction)
@@ -159,8 +175,8 @@ class TuringMachine
         #if pos == STATES_LENGTH
         #  return STATES_LENGTH
         #else
-          return pos + 1
-        #end
+        return pos + 1
+      #end
 
       when HALT
         return pos + 0
@@ -176,8 +192,8 @@ class TuringMachine
 
   #################### INPUT / INITIAL TAPE ###########################################
   #ask()           # ask for input
-    @multiplicand = 2
-    @multiplier   = 3
+  @multiplicand = 2
+  @multiplier   = 3
 
   #find product
   @product = (@multiplicand * @multiplier)
@@ -187,16 +203,15 @@ class TuringMachine
   ## append input to tape and print:
   empties(@tape, 1)          #add separator
   ones(@tape, @multiplicand) #add 1s for input multiplicand
-    empties(@tape, 1)          #add separator
-    ones(@tape, @multiplier)   #add 1s for input multiplier
-    empties(@tape, @product+2)   #add blank space ready for prospective product output
+  empties(@tape, 1)          #add separator
+  ones(@tape, @multiplier)   #add 1s for input multiplier
+  empties(@tape, @product+2)   #add blank space ready for prospective product output
 
   length = @tape.length    #store tape length
 
   puts printHeader(length-2)
-  print "[S:#{@states[0]}]\t"
-  printTape(@tape, 0)
-  print "\n" #print tape as string
+
+  puts printTape(@tape, 0, 0)
 
 
 ####################################################################
@@ -205,31 +220,30 @@ class TuringMachine
   pointer = 1       #set pointer to first char
 
   until state == 10   #Loop until state reaches qF
-  current = @tape[pointer]        #store current value
+    current = @tape[pointer]        #store current value
 
     #store values from rules hash
-      newChar = new(state, current)      #store new value
-      newState = newState(state, current) #store new state
-      direction = action(state, current)  #store direction to move
+    newChar = new(state, current)      #store new value
+    newState = newState(state, current) #store new state
+    direction = action(state, current)  #store direction to move
 
     #update tape and print
-      @tape[pointer] = newChar          #update character
-  print "[S: #{@states[state]}]\t"
-  #print "[P: #{[pointer]}]"
+    @tape[pointer] = newChar          #update character
+    #print "[P: #{[pointer]}]"
 
 
-  printTape(@tape, (pointer))
-  print "\n"
+    puts printTape(@tape, pointer, state)
 
     #make changes to progress
-      state = newState                   #update state
-      pointer = move(pointer, direction) #move pointer
+    state = newState                   #update state
+    pointer = move(pointer, direction) #move pointer
 
   end
-  print "[s: #{@states[state]}]\t"
-  printTape(@tape, pointer)
-  print "\n" #print tape as string
+  puts printTape(@tape, pointer, state)
 
   #print "string".colorize(:color => :white, :background => :red)
+
+  print headHighlight(0, "10")
+  print headHighlight(1, "11")
 
 end
